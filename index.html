@@ -1179,184 +1179,232 @@
             resultsDiv.style.display = 'block';
         }
 
-        // CORS Proxy Webhook Solution - UPDATED FUNCTION
-        async function sendViaWebhook() {
-            const originalWebhookUrl = document.getElementById('webhook-url').value.trim();
-            const selectedLabel = document.getElementById('invoice-label').value;
+// FIXED Webhook function - replace your sendViaWebhook function with this
+async function sendViaWebhook() {
+    const originalWebhookUrl = document.getElementById('webhook-url').value.trim();
+    const selectedLabel = document.getElementById('invoice-label').value;
+    
+    console.log('Starting webhook send...');
+    console.log('Original webhook URL:', originalWebhookUrl);
+    console.log('Selected label:', selectedLabel);
+    
+    if (!selectedLabel) {
+        showStatus('Please select an invoice category first!', 'error');
+        return;
+    }
+    
+    if (!extractedData) {
+        showStatus('No extracted data available. Please extract data first!', 'error');
+        return;
+    }
+    
+    if (!originalFile) {
+        showStatus('Original file not available!', 'error');
+        return;
+    }
+    
+    // Check file size first - limit to 5MB for webhook
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    if (originalFile.size > maxFileSize) {
+        showStatus(`File too large (${Math.round(originalFile.size / (1024 * 1024))}MB). Sending text data only...`, 'info');
+        await sendTextDataOnly(originalWebhookUrl, selectedLabel);
+        return;
+    }
+    
+    const categoryToGroupId = {
+        "Sandys Estates / Client Expenses": "group_title",
+        "Sandys Estates / Office Expenses": "new_group",
+        "I&F Estates / Client Expenses": "group_mksd5xve", 
+        "I&F Estates / Office Expenses": "group_mkp0jvjq",
+        "BG Property Services": "new_group12494",
+        "Blockman": "new_group83039"
+    };
+    
+    const groupId = categoryToGroupId[selectedLabel];
+    
+    // Prepare payload
+    const payload = {
+        creditor: currentCreditor,
+        category: selectedLabel,
+        groupId: groupId,
+        mondayColumns: {
+            "text": extractedData.address || "",
+            "numbers5": extractedData.amount || "",
+            "text1": extractedData.reference || "",
+            "status_1": selectedLabel,
+            "email__1": extractedData.creditor_email || "",
+            "text_mkres817": extractedData.description || ""
+        },
+        fields: extractedData,
+        processedAt: new Date().toISOString(),
+        fieldCount: Object.keys(extractedData).length,
+        fileName: originalFile.name,
+        fileSize: originalFile.size,
+        fileType: originalFile.type
+    };
+    
+    console.log('Payload prepared:', payload);
+    
+    // Try multiple CORS proxy services
+    const corsProxies = [
+        'https://corsproxy.io/?',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url='
+    ];
+    
+    showStatus('Sending data via CORS proxy to Make.com...', 'info');
+    
+    // Try each proxy service
+    for (let i = 0; i < corsProxies.length; i++) {
+        const proxyUrl = corsProxies[i] + encodeURIComponent(originalWebhookUrl);
+        console.log(`Trying proxy ${i + 1}:`, proxyUrl);
+        
+        try {
+            // Method 1: Try JSON first (smaller payload)
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            });
             
-            // Use CORS proxy - you can choose one of these:
-            const corsProxies = [
-                'https://corsproxy.io/?',
-                'https://cors-anywhere.herokuapp.com/',
-                'https://api.allorigins.win/raw?url=',
-                'https://thingproxy.freeboard.io/fetch/'
-            ];
+            console.log(`Proxy ${i + 1} response status:`, response.status);
             
-            // Use the first proxy (you can try others if this one fails)
-            const proxyUrl = corsProxies[0] + encodeURIComponent(originalWebhookUrl);
-            
-            console.log('Using CORS proxy:', proxyUrl);
-            console.log('Original webhook URL:', originalWebhookUrl);
-            
-            if (!selectedLabel) {
-                showStatus('Please select an invoice category first!', 'error');
-                return;
+            if (response.ok) {
+                const responseText = await response.text();
+                console.log(`Proxy ${i + 1} success:`, responseText);
+                
+                showStatus('✅ Data sent successfully via CORS proxy!', 'success');
+                
+                const successInfo = `
+                    <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Method:</strong> CORS Proxy ${i + 1}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${selectedLabel}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Group ID:</strong> ${groupId}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Data Type:</strong> Text Only (${Object.keys(extractedData).length} fields)</p>
+                    </div>
+                `;
+                
+                document.getElementById('results').innerHTML += successInfo;
+                return; // Success! Exit the function
+            } else {
+                console.log(`Proxy ${i + 1} failed with status:`, response.status, await response.text());
             }
             
-            if (!extractedData) {
-                showStatus('No extracted data available. Please extract data first!', 'error');
-                return;
-            }
-            
-            if (!originalFile) {
-                showStatus('Original file not available!', 'error');
-                return;
-            }
-            
-            const categoryToGroupId = {
-                "Sandys Estates / Client Expenses": "group_title",
-                "Sandys Estates / Office Expenses": "new_group",
-                "I&F Estates / Client Expenses": "group_mksd5xve", 
-                "I&F Estates / Office Expenses": "group_mkp0jvjq",
-                "BG Property Services": "new_group12494",
-                "Blockman": "new_group83039"
-            };
-            
-            const groupId = categoryToGroupId[selectedLabel];
-            
-            showStatus('Sending data via CORS proxy to Make.com...', 'info');
-            
-            try {
-                // Method 1: Try with FormData through proxy
-                const formData = new FormData();
-                
-                const payload = {
-                    creditor: currentCreditor,
-                    category: selectedLabel,
-                    groupId: groupId,
-                    mondayColumns: {
-                        "text": extractedData.address || "",
-                        "numbers5": extractedData.amount || "",
-                        "text1": extractedData.reference || "",
-                        "status_1": selectedLabel,
-                        "email__1": extractedData.creditor_email || "",
-                        "text_mkres817": extractedData.description || ""
-                    },
-                    fields: extractedData,
-                    processedAt: new Date().toISOString(),
-                    fieldCount: Object.keys(extractedData).length,
-                    fileName: originalFile.name,
-                    fileSize: originalFile.size,
-                    fileType: originalFile.type
-                };
-                
-                console.log('Payload being sent:', payload);
-                
-                // Add data as JSON string
-                formData.append('data', JSON.stringify(payload));
-                
-                // Convert file to base64
-                const fileBase64 = await fileToBase64(originalFile);
-                formData.append('file', fileBase64);
-                formData.append('fileName', originalFile.name);
-                formData.append('fileType', originalFile.type);
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 45000); // Longer timeout for proxy
-                
-                const response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    body: formData,
-                    signal: controller.signal,
-                });
-                
-                clearTimeout(timeoutId);
-                
-                console.log('Proxy response status:', response.status);
-                
-                if (response.ok) {
-                    const responseText = await response.text();
-                    console.log('Proxy response body:', responseText);
-                    
-                    showStatus('✅ Data sent successfully via CORS proxy to Make.com!', 'success');
-                    
-                    const successInfo = `
-                        <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully via CORS Proxy!</h4>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${selectedLabel}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Group ID:</strong> ${groupId}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Method:</strong> CORS Proxy</p>
-                        </div>
-                    `;
-                    
-                    document.getElementById('results').innerHTML += successInfo;
-                    
-                } else {
-                    throw new Error(`Proxy returned HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-            } catch (error) {
-                console.error('CORS proxy method failed:', error);
-                
-                // Try alternative proxy if the first one fails
-                if (error.message.includes('proxy') || error.message.includes('CORS')) {
-                    showStatus('First proxy failed, trying alternative method...', 'info');
-                    await tryAlternativeProxy(originalWebhookUrl, payload, corsProxies.slice(1));
-                } else {
-                    showStatus(`❌ Failed to send via proxy: ${error.message}`, 'error');
-                    
-                    const errorInfo = `
-                        <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
-                            <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 CORS Proxy Failed</h4>
-                            <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
-                            <p style="margin: 5px 0; color: #721c24;"><strong>Solutions:</strong></p>
-                            <ul style="margin: 5px 0; color: #721c24; padding-left: 20px;">
-                                <li>Try downloading and running the app locally</li>
-                                <li>Use a different CORS proxy service</li>
-                                <li>Set up your own backend server</li>
-                                <li>Configure Make.com to allow CORS (if possible)</li>
-                            </ul>
-                        </div>
-                    `;
-                    
-                    document.getElementById('results').innerHTML += errorInfo;
-                }
-            }
+        } catch (error) {
+            console.error(`Proxy ${i + 1} error:`, error);
         }
+    }
+    
+    // If all proxies failed, try sending without proxy (will likely fail but worth trying)
+    console.log('All proxies failed, trying direct connection...');
+    showStatus('Proxies failed, trying direct connection...', 'info');
+    
+    try {
+        const response = await fetch(originalWebhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            showStatus('✅ Direct connection worked!', 'success');
+            console.log('Direct response:', await response.text());
+        } else {
+            throw new Error(`Direct connection failed: ${response.status}`);
+        }
+        
+    } catch (error) {
+        console.error('All methods failed:', error);
+        
+        showStatus('❌ All connection methods failed. Try running locally.', 'error');
+        
+        const errorInfo = `
+            <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
+                <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 All Methods Failed</h4>
+                <p style="margin: 5px 0; color: #721c24;"><strong>Issue:</strong> CORS restrictions prevent browser requests</p>
+                <p style="margin: 5px 0; color: #721c24;"><strong>Solutions:</strong></p>
+                <ul style="margin: 5px 0; color: #721c24; padding-left: 20px;">
+                    <li><strong>Best:</strong> Download the HTML file and run it locally (python -m http.server)</li>
+                    <li><strong>Alternative:</strong> Use a different hosting platform that supports server-side requests</li>
+                    <li><strong>Temporary:</strong> Enable CORS in your browser (not recommended for security)</li>
+                </ul>
+                <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+                    <strong>💡 Quick Fix:</strong> Right-click → Save As → save this page as an HTML file, then open it directly in your browser (file:// URL)
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('results').innerHTML += errorInfo;
+    }
+}
 
-        // Try alternative CORS proxies
-        async function tryAlternativeProxy(originalUrl, payload, remainingProxies) {
-            if (remainingProxies.length === 0) {
-                showStatus('All CORS proxies failed. Try running the app locally.', 'error');
+// Alternative function for text-only data (when file is too large)
+async function sendTextDataOnly(webhookUrl, selectedLabel) {
+    const categoryToGroupId = {
+        "Sandys Estates / Client Expenses": "group_title",
+        "Sandys Estates / Office Expenses": "new_group",
+        "I&F Estates / Client Expenses": "group_mksd5xve", 
+        "I&F Estates / Office Expenses": "group_mkp0jvjq",
+        "BG Property Services": "new_group12494",
+        "Blockman": "new_group83039"
+    };
+    
+    const groupId = categoryToGroupId[selectedLabel];
+    
+    const textPayload = {
+        creditor: currentCreditor,
+        category: selectedLabel,
+        groupId: groupId,
+        mondayColumns: {
+            "text": extractedData.address || "",
+            "numbers5": extractedData.amount || "",
+            "text1": extractedData.reference || "",
+            "status_1": selectedLabel,
+            "email__1": extractedData.creditor_email || "",
+            "text_mkres817": extractedData.description || ""
+        },
+        fields: extractedData,
+        processedAt: new Date().toISOString(),
+        fieldCount: Object.keys(extractedData).length,
+        note: "File too large - text data only"
+    };
+    
+    const corsProxies = [
+        'https://corsproxy.io/?',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url='
+    ];
+    
+    for (let i = 0; i < corsProxies.length; i++) {
+        const proxyUrl = corsProxies[i] + encodeURIComponent(webhookUrl);
+        
+        try {
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(textPayload)
+            });
+            
+            if (response.ok) {
+                showStatus('✅ Text data sent successfully (file too large for upload)!', 'success');
                 return;
             }
-            
-            const proxyUrl = remainingProxies[0] + encodeURIComponent(originalUrl);
-            console.log('Trying alternative proxy:', proxyUrl);
-            
-            try {
-                const response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (response.ok) {
-                    showStatus('✅ Alternative proxy worked!', 'success');
-                    console.log('Alternative proxy response:', await response.text());
-                } else {
-                    throw new Error(`Alternative proxy failed: ${response.status}`);
-                }
-                
-            } catch (error) {
-                console.log('Alternative proxy also failed, trying next...');
-                await tryAlternativeProxy(originalUrl, payload, remainingProxies.slice(1));
-            }
+        } catch (error) {
+            console.error(`Text-only proxy ${i + 1} failed:`, error);
         }
+    }
+    
+    showStatus('❌ Failed to send even text-only data. Try running locally.', 'error');
+}
 
         // Helper function to convert file to base64
         function fileToBase64(file) {
