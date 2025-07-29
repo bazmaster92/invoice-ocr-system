@@ -1215,7 +1215,7 @@
             resultsDiv.style.display = 'block';
         }
 
-        // Webhook functionality - SIMPLE VERSION THAT WORKED
+        // Webhook functionality - ORIGINAL WORKING VERSION WITH COLUMN MAPPING
         async function sendViaWebhook() {
             const webhookUrl = document.getElementById('webhook-url').value.trim();
             const selectedLabel = document.getElementById('invoice-label').value;
@@ -1253,7 +1253,7 @@
                 // Create FormData to send both data and file
                 const formData = new FormData();
                 
-                // Add extracted data with Monday.com column IDs
+                // Add extracted data as JSON with the selected label AND column mapping
                 formData.append('extractedData', JSON.stringify({
                     creditor: currentCreditor,
                     category: selectedLabel,
@@ -1284,7 +1284,7 @@
                     groupId: groupId
                 }));
                 
-                // Send to webhook - SIMPLE FETCH LIKE BEFORE
+                // Send to webhook - ORIGINAL SIMPLE FETCH
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     body: formData
