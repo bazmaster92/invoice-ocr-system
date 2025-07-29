@@ -1669,4 +1669,28 @@
         
         // Status messages
         function showStatus(message, type) {
-            const existingStatus
+            const existingStatus = document.querySelector('.status:not(#status-text)');
+            if (existingStatus && existingStatus.parentElement === document.querySelector('.right-sidebar')) {
+                existingStatus.remove();
+            }
+            
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            const rightSidebar = document.querySelector('.right-sidebar');
+            const actionButtons = document.querySelector('.action-buttons');
+            rightSidebar.insertBefore(status, actionButtons.nextSibling);
+            
+            setTimeout(() => {
+                if (status.parentElement) {
+                    status.remove();
+                }
+            }, 5000);
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            initializeApp();
+        });
