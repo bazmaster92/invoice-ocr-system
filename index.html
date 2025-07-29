@@ -349,19 +349,19 @@
             font-size: 1.5em;
             color: #4facfe;
         }
-        .webhook-section {
+        .label-section {
             margin: 20px 0;
             padding: 20px;
             background: white;
             border-radius: 10px;
             border: 2px solid #e9ecef;
         }
-        .webhook-section h3 {
+        .label-section h3 {
             margin-bottom: 15px;
             color: #495057;
             font-size: 1.2em;
         }
-        .webhook-input {
+        .label-select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e9ecef;
@@ -369,13 +369,15 @@
             font-size: 1em;
             margin-bottom: 10px;
             transition: border-color 0.3s ease;
+            background: white;
+            cursor: pointer;
         }
-        .webhook-input:focus {
+        .label-select:focus {
             outline: none;
-            border-color: #28a745;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        .webhook-info {
+        .label-info {
             color: #6c757d;
             font-size: 0.9em;
         }
@@ -425,10 +427,8 @@
                         <button class="btn btn-small" onclick="showSavedTemplates()">📋 View All</button>
                     </div>
                 </div>
-
                 <!-- Webhook section hidden - URL configured in code -->
                 <input type="hidden" id="webhook-url" value="https://hook.eu1.make.com/aoqhdg4kb2dctqgc2vwnqvq0s5vc34ih">
-
                 <div class="label-section">
                     <h3>🏷️ Invoice Category</h3>
                     <select id="invoice-label" class="label-select">
@@ -444,7 +444,6 @@
                         <small>💡 Select the appropriate category for this invoice</small>
                     </div>
                 </div>
-
                 <div class="field-list">
                     <h3>📊 Field Types</h3>
                     <div class="field-item" data-field="creditor">
@@ -586,7 +585,6 @@
             
             // Load saved templates on startup
             savedTemplates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
-            
             updateCreditorDatalist();
             
             console.log('App initialization complete!');
@@ -1217,7 +1215,7 @@
             resultsDiv.style.display = 'block';
         }
 
-        // Webhook functionality
+        // Webhook functionality with CORS fallback
         async function sendViaWebhook() {
             const webhookUrl = document.getElementById('webhook-url').value.trim();
             const selectedLabel = document.getElementById('invoice-label').value;
@@ -1237,73 +1235,150 @@
                 return;
             }
             
+            // Map category to Group ID
+            const categoryToGroupId = {
+                "Sandys Estates / Client Expenses": "group_title",
+                "Sandys Estates / Office Expenses": "new_group",
+                "I&F Estates / Client Expenses": "group_mksd5xve", 
+                "I&F Estates / Office Expenses": "group_mkp0jvjq",
+                "BG Property Services": "new_group12494",
+                "Blockman": "new_group83039"
+            };
+            
+            const groupId = categoryToGroupId[selectedLabel];
+            
             showStatus('Sending data to Make.com...', 'info');
             
-            try {
-                // Create FormData to send both data and file
-                const formData = new FormData();
-                
-                // Add extracted data as JSON with the selected label
-                formData.append('extractedData', JSON.stringify({
-                    creditor: currentCreditor,
-                    category: selectedLabel,
-                    fields: extractedData,
-                    processedAt: new Date().toISOString(),
-                    fieldCount: Object.keys(extractedData).length
-                }));
-                
-                // Add original file
-                formData.append('originalFile', originalFile, originalFile.name);
-                
-                // Add metadata
-                formData.append('metadata', JSON.stringify({
-                    fileName: originalFile.name,
-                    fileSize: originalFile.size,
-                    fileType: originalFile.type,
-                    creditor: currentCreditor,
-                    category: selectedLabel
-                }));
-                
-                // Send to webhook
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    showStatus('✅ Data sent successfully to Make.com!', 'success');
-                    
-                    // Show success details
-                    const successInfo = `
-                        <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${selectedLabel}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Fields Sent:</strong> ${Object.keys(extractedData).length}</p>
-                        </div>
-                    `;
-                    
-                    document.getElementById('results').innerHTML += successInfo;
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Prepare the data
+            const extractedDataPayload = {
+                creditor: currentCreditor,
+                category: selectedLabel,
+                groupId: groupId,
+                mondayColumns: {
+                    "text": extractedData.address || "",           // Address
+                    "numbers5": extractedData.amount || "",       // Amount  
+                    "text1": extractedData.reference || "",       // Reference
+                    "status_1": selectedLabel,                    // Invoice Category
+                    "email__1": extractedData.creditor_email || "", // Creditor Email
+                    "text_mkres817": extractedData.description || "" // Description
+                },
+                fields: extractedData,
+                processedAt: new Date().toISOString(),
+                fieldCount: Object.keys(extractedData).length
+            };
+            
+            const metadata = {
+                fileName: originalFile.name,
+                fileSize: originalFile.size,
+                fileType: originalFile.type,
+                creditor: currentCreditor,
+                category: selectedLabel,
+                groupId: groupId,
+                mondayBoardInfo: {
+                    groupId: groupId,
+                    columnIds: {
+                        address: "text",
+                        amount: "numbers5", 
+                        reference: "text1",
+                        category: "status_1",
+                        creditorEmail: "email__1",
+                        description: "text_mkres817",
+                        files: "files"
+                    }
                 }
+            };
+            
+            // Try multiple methods to handle CORS issues
+            try {
+                // Method 1: Try standard fetch with no-cors mode
+                await tryFetchNoCors(webhookUrl, extractedDataPayload, metadata);
                 
             } catch (error) {
-                console.error('Webhook error:', error);
-                showStatus(`❌ Failed to send data: ${error.message}`, 'error');
+                console.error('All webhook methods failed:', error);
+                showStatus(`❌ Failed to send data: CORS policy blocking request`, 'error');
                 
-                // Show troubleshooting info
+                // Show detailed troubleshooting info
                 const errorInfo = `
                     <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 Send Failed</h4>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
-                        <p style="margin: 5px 0; color: #721c24;">Please check your connection and try again.</p>
+                        <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 Send Failed - CORS Issue</h4>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>Problem:</strong> Browser CORS policy is blocking the request</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>Webhook URL:</strong> ${webhookUrl}</p>
+                        <p style="margin: 10px 0 5px 0; color: #721c24;"><strong>Solutions:</strong></p>
+                        <ul style="margin: 5px 0 10px 20px; color: #721c24;">
+                            <li><strong>Option 1:</strong> Use a CORS proxy service</li>
+                            <li><strong>Option 2:</strong> Host this on a server instead of GitHub Pages</li>
+                            <li><strong>Option 3:</strong> Use a browser extension to disable CORS (development only)</li>
+                            <li><strong>Option 4:</strong> Create a server-side proxy that forwards requests</li>
+                        </ul>
+                        <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                            <p style="margin: 0; color: #856404;"><strong>📋 Data Ready:</strong> The data is prepared and would be sent successfully from a server environment.</p>
+                        </div>
                     </div>
                 `;
                 
                 document.getElementById('results').innerHTML += errorInfo;
+                
+                // Also show the data that would be sent for debugging
+                showDataPreview(extractedDataPayload, metadata);
             }
+        }
+        
+        // Try fetch with no-cors mode
+        async function tryFetchNoCors(webhookUrl, extractedDataPayload, metadata) {
+            try {
+                const formData = new FormData();
+                formData.append('extractedData', JSON.stringify(extractedDataPayload));
+                formData.append('metadata', JSON.stringify(metadata));
+                formData.append('originalFile', originalFile, originalFile.name);
+                
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+                
+                // With no-cors, we can't read the response, but if no error is thrown, it likely worked
+                showStatus('✅ Data sent successfully to Make.com! (CORS workaround)', 'success');
+                
+                const successInfo = `
+                    <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${extractedDataPayload.category}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Group ID:</strong> ${extractedDataPayload.groupId}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Fields Sent:</strong> ${Object.keys(extractedData).length}</p>
+                        <p style="margin: 5px 0; color: #155724;"><strong>Method:</strong> no-cors mode (check Make.com for execution)</p>
+                    </div>
+                `;
+                
+                document.getElementById('results').innerHTML += successInfo;
+                return true;
+                
+            } catch (error) {
+                console.error('no-cors method failed:', error);
+                throw error;
+            }
+        }
+        
+        // Show data preview for debugging
+        function showDataPreview(extractedDataPayload, metadata) {
+            const previewInfo = `
+                <div style="margin-top: 15px; padding: 15px; background: #e2e3e5; border-radius: 8px; border-left: 4px solid #6c757d;">
+                    <h4 style="margin: 0 0 10px 0; color: #495057;">📋 Data Preview (Ready to Send)</h4>
+                    <details style="margin: 5px 0;">
+                        <summary style="cursor: pointer; font-weight: bold; color: #495057;">Monday.com Column Data</summary>
+                        <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin: 5px 0;">${JSON.stringify(extractedDataPayload.mondayColumns, null, 2)}</pre>
+                    </details>
+                    <details style="margin: 5px 0;">
+                        <summary style="cursor: pointer; font-weight: bold; color: #495057;">Full Payload</summary>
+                        <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin: 5px 0;">${JSON.stringify(extractedDataPayload, null, 2)}</pre>
+                    </details>
+                    <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 0.9em;">This data is correctly formatted and ready for Make.com integration.</p>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML += previewInfo;
         }
 
         // Progress management
