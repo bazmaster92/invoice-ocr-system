@@ -514,10 +514,8 @@
         let savedTemplates = {};
         let extractedData = null;
         let originalFile = null;
-
         // Initialize PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
         // Initialize everything after DOM is loaded
         function initializeApp() {
             console.log('Initializing app...');
@@ -526,7 +524,6 @@
             canvas = document.getElementById('invoice-canvas');
             ctx = canvas.getContext('2d');
             console.log('Canvas initialized:', canvas);
-
             // File upload handling
             const fileInput = document.getElementById('file-input');
             console.log('File input found:', fileInput);
@@ -541,7 +538,6 @@
                     console.log('No file selected');
                 }
             });
-
             // Upload area click handler
             const uploadArea = document.querySelector('.upload-area');
             console.log('Upload area found:', uploadArea);
@@ -550,24 +546,20 @@
                 console.log('Upload area clicked');
                 fileInput.click();
             });
-
             // Drag and drop
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
             });
-
             uploadArea.addEventListener('dragleave', () => {
                 uploadArea.classList.remove('dragover');
             });
-
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
                 const file = e.dataTransfer.files[0];
                 if (file) loadImage(file);
             });
-
             // Field selection
             document.querySelectorAll('.field-item').forEach(item => {
                 item.addEventListener('click', function() {
@@ -577,7 +569,6 @@
                     showStatus(`Selected: ${this.querySelector('.field-name').textContent}`, 'info');
                 });
             });
-
             // Canvas mouse events
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
@@ -589,7 +580,6 @@
             
             console.log('App initialization complete!');
         }
-
         // Load and display image, PDF, or DOC file
         function loadImage(file) {
             console.log('Attempting to load file:', file.name, file.type, file.size);
@@ -635,7 +625,6 @@
                 loadImageFile(file);
             }
         }
-
         // Load PDF and convert first page to image
         async function loadPDF(file) {
             originalFile = file; // Store the original file
@@ -674,7 +663,6 @@
                 showStatus('Error loading PDF. Please try a different file.', 'error');
             }
         }
-
         // Load regular image file
         function loadImageFile(file) {
             originalFile = file; // Store the original file
@@ -707,7 +695,6 @@
             
             reader.readAsDataURL(file);
         }
-
         // Load Word document and convert to image
         async function loadWordDocument(file) {
             originalFile = file; // Store the original file
@@ -745,7 +732,6 @@
                 showStatus('Error loading Word document. Please try a different file or convert to PDF.', 'error');
             }
         }
-
         // Convert Word document content to canvas
         async function convertWordToCanvas(element, htmlContent) {
             try {
@@ -797,13 +783,11 @@
                 showStatus('Error converting Word document. Please try converting to PDF first.', 'error');
             }
         }
-
         // Helper function to wrap text
         function wrapText(ctx, text, maxWidth) {
             const words = text.split(' ');
             const lines = [];
             let currentLine = '';
-
             for (let word of words) {
                 const testLine = currentLine + word + ' ';
                 const metrics = ctx.measureText(testLine);
@@ -823,7 +807,6 @@
             
             return lines;
         }
-
         // Resize canvas to fit image
         function resizeCanvas(img) {
             const container = document.querySelector('.canvas-container');
@@ -835,7 +818,6 @@
             canvas.width = img.width * scale;
             canvas.height = img.height * scale;
         }
-
         // Draw image and zones
         function drawImage() {
             if (!currentImage) return;
@@ -848,7 +830,6 @@
                 drawSavedZone(zone, field);
             });
         }
-
         function startDrawing(e) {
             if (!activeField) {
                 showStatus('Please select a field type first!', 'error');
@@ -860,7 +841,6 @@
             startX = e.clientX - rect.left;
             startY = e.clientY - rect.top;
         }
-
         function draw(e) {
             if (!isDrawing) return;
             
@@ -871,7 +851,6 @@
             drawImage();
             drawCurrentSelection();
         }
-
         function stopDrawing(e) {
             if (!isDrawing) return;
             
@@ -881,7 +860,6 @@
                 saveZone();
             }
         }
-
         function drawCurrentSelection() {
             ctx.strokeStyle = '#4facfe';
             ctx.lineWidth = 3;
@@ -893,7 +871,6 @@
             ctx.fillRect(startX, startY, width, height);
             ctx.strokeRect(startX, startY, width, height);
         }
-
         function drawSavedZone(zone, field) {
             ctx.strokeStyle = '#28a745';
             ctx.lineWidth = 2;
@@ -907,7 +884,6 @@
             ctx.font = '12px Arial';
             ctx.fillText(field.replace('_', ' ').toUpperCase(), zone.x, zone.y - 5);
         }
-
         function saveZone() {
             const zone = {
                 x: Math.min(startX, currentX),
@@ -926,7 +902,6 @@
             document.querySelectorAll('.field-item').forEach(i => i.classList.remove('active'));
             activeField = null;
         }
-
         // Template management with creditor support
         function saveCreditorTemplate() {
             const creditor = document.getElementById('creditor-input').value.trim();
@@ -965,7 +940,6 @@
             updateCreditorIndicator();
             updateCreditorDatalist();
         }
-
         function showLoadTemplateOptions() {
             const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
             
@@ -1003,7 +977,6 @@
             templatesList.innerHTML = html;
             document.getElementById('templates-modal').style.display = 'flex';
         }
-
         function loadCreditorTemplate() {
             const creditor = document.getElementById('creditor-input').value.trim();
             
@@ -1033,7 +1006,6 @@
             updateCreditorIndicator();
             updateCreditorDatalist();
         }
-
         function showSavedTemplates() {
             const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
             const templatesList = document.getElementById('templates-list');
@@ -1069,13 +1041,11 @@
             
             document.getElementById('templates-modal').style.display = 'flex';
         }
-
         function loadSpecificTemplate(creditor) {
             document.getElementById('creditor-input').value = creditor;
             closeTemplatesModal();
             loadCreditorTemplate();
         }
-
         function deleteTemplate(creditor) {
             if (confirm(`Are you sure you want to delete the template for ${creditor}?`)) {
                 const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
@@ -1091,11 +1061,9 @@
                 }
             }
         }
-
         function closeTemplatesModal() {
             document.getElementById('templates-modal').style.display = 'none';
         }
-
         function updateCreditorDatalist() {
             const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
             const datalist = document.getElementById('creditor-datalist');
@@ -1107,7 +1075,6 @@
                 datalist.appendChild(option);
             });
         }
-
         function updateCreditorIndicator() {
             const existingIndicator = document.querySelector('.creditor-indicator');
             if (existingIndicator) {
@@ -1123,13 +1090,11 @@
                 fieldList.parentNode.insertBefore(indicator, fieldList);
             }
         }
-
         function clearTemplate() {
             savedZones = {};
             drawImage();
             showStatus('Zones cleared!', 'info');
         }
-
         // OCR Processing
         async function processInvoice() {
             if (!currentImage || Object.keys(savedZones).length === 0) {
@@ -1193,7 +1158,6 @@
                 showProgress(false);
             }
         }
-
         // Display results
         function displayResults(results) {
             const resultsDiv = document.getElementById('results');
@@ -1215,10 +1179,24 @@
             resultsDiv.style.display = 'block';
         }
 
-        // Webhook functionality - ORIGINAL WORKING VERSION WITH COLUMN MAPPING
+        // CORS Proxy Webhook Solution - UPDATED FUNCTION
         async function sendViaWebhook() {
-            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            const originalWebhookUrl = document.getElementById('webhook-url').value.trim();
             const selectedLabel = document.getElementById('invoice-label').value;
+            
+            // Use CORS proxy - you can choose one of these:
+            const corsProxies = [
+                'https://corsproxy.io/?',
+                'https://cors-anywhere.herokuapp.com/',
+                'https://api.allorigins.win/raw?url=',
+                'https://thingproxy.freeboard.io/fetch/'
+            ];
+            
+            // Use the first proxy (you can try others if this one fails)
+            const proxyUrl = corsProxies[0] + encodeURIComponent(originalWebhookUrl);
+            
+            console.log('Using CORS proxy:', proxyUrl);
+            console.log('Original webhook URL:', originalWebhookUrl);
             
             if (!selectedLabel) {
                 showStatus('Please select an invoice category first!', 'error');
@@ -1235,7 +1213,6 @@
                 return;
             }
             
-            // Map category to Group ID
             const categoryToGroupId = {
                 "Sandys Estates / Client Expenses": "group_title",
                 "Sandys Estates / Office Expenses": "new_group",
@@ -1247,86 +1224,150 @@
             
             const groupId = categoryToGroupId[selectedLabel];
             
-            showStatus('Sending data to Make.com...', 'info');
+            showStatus('Sending data via CORS proxy to Make.com...', 'info');
             
             try {
-                // Create FormData to send both data and file
+                // Method 1: Try with FormData through proxy
                 const formData = new FormData();
                 
-                // Add extracted data as JSON with the selected label AND column mapping
-                formData.append('extractedData', JSON.stringify({
+                const payload = {
                     creditor: currentCreditor,
                     category: selectedLabel,
                     groupId: groupId,
                     mondayColumns: {
-                        "text": extractedData.address || "",           // Address
-                        "numbers5": extractedData.amount || "",       // Amount  
-                        "text1": extractedData.reference || "",       // Reference
-                        "status_1": selectedLabel,                    // Invoice Category
-                        "email__1": extractedData.creditor_email || "", // Creditor Email
-                        "text_mkres817": extractedData.description || "" // Description
+                        "text": extractedData.address || "",
+                        "numbers5": extractedData.amount || "",
+                        "text1": extractedData.reference || "",
+                        "status_1": selectedLabel,
+                        "email__1": extractedData.creditor_email || "",
+                        "text_mkres817": extractedData.description || ""
                     },
                     fields: extractedData,
                     processedAt: new Date().toISOString(),
-                    fieldCount: Object.keys(extractedData).length
-                }));
-                
-                // Add original file
-                formData.append('originalFile', originalFile, originalFile.name);
-                
-                // Add metadata
-                formData.append('metadata', JSON.stringify({
+                    fieldCount: Object.keys(extractedData).length,
                     fileName: originalFile.name,
                     fileSize: originalFile.size,
-                    fileType: originalFile.type,
-                    creditor: currentCreditor,
-                    category: selectedLabel,
-                    groupId: groupId
-                }));
+                    fileType: originalFile.type
+                };
                 
-                // Send to webhook - ORIGINAL SIMPLE FETCH
-                const response = await fetch(webhookUrl, {
+                console.log('Payload being sent:', payload);
+                
+                // Add data as JSON string
+                formData.append('data', JSON.stringify(payload));
+                
+                // Convert file to base64
+                const fileBase64 = await fileToBase64(originalFile);
+                formData.append('file', fileBase64);
+                formData.append('fileName', originalFile.name);
+                formData.append('fileType', originalFile.type);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 45000); // Longer timeout for proxy
+                
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal,
                 });
                 
+                clearTimeout(timeoutId);
+                
+                console.log('Proxy response status:', response.status);
+                
                 if (response.ok) {
-                    showStatus('✅ Data sent successfully to Make.com!', 'success');
+                    const responseText = await response.text();
+                    console.log('Proxy response body:', responseText);
                     
-                    // Show success details
+                    showStatus('✅ Data sent successfully via CORS proxy to Make.com!', 'success');
+                    
                     const successInfo = `
                         <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
+                            <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully via CORS Proxy!</h4>
                             <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${selectedLabel}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>Group ID:</strong> ${groupId}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Fields Sent:</strong> ${Object.keys(extractedData).length}</p>
+                            <p style="margin: 5px 0; color: #155724;"><strong>Method:</strong> CORS Proxy</p>
                         </div>
                     `;
                     
                     document.getElementById('results').innerHTML += successInfo;
+                    
                 } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error(`Proxy returned HTTP ${response.status}: ${response.statusText}`);
                 }
                 
             } catch (error) {
-                console.error('Webhook error:', error);
-                showStatus(`❌ Failed to send data: ${error.message}`, 'error');
+                console.error('CORS proxy method failed:', error);
                 
-                // Show troubleshooting info
-                const errorInfo = `
-                    <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 Send Failed</h4>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
-                        <p style="margin: 5px 0; color: #721c24;">Please check your connection and try again.</p>
-                    </div>
-                `;
-                
-                document.getElementById('results').innerHTML += errorInfo;
+                // Try alternative proxy if the first one fails
+                if (error.message.includes('proxy') || error.message.includes('CORS')) {
+                    showStatus('First proxy failed, trying alternative method...', 'info');
+                    await tryAlternativeProxy(originalWebhookUrl, payload, corsProxies.slice(1));
+                } else {
+                    showStatus(`❌ Failed to send via proxy: ${error.message}`, 'error');
+                    
+                    const errorInfo = `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
+                            <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 CORS Proxy Failed</h4>
+                            <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
+                            <p style="margin: 5px 0; color: #721c24;"><strong>Solutions:</strong></p>
+                            <ul style="margin: 5px 0; color: #721c24; padding-left: 20px;">
+                                <li>Try downloading and running the app locally</li>
+                                <li>Use a different CORS proxy service</li>
+                                <li>Set up your own backend server</li>
+                                <li>Configure Make.com to allow CORS (if possible)</li>
+                            </ul>
+                        </div>
+                    `;
+                    
+                    document.getElementById('results').innerHTML += errorInfo;
+                }
             }
         }
 
+        // Try alternative CORS proxies
+        async function tryAlternativeProxy(originalUrl, payload, remainingProxies) {
+            if (remainingProxies.length === 0) {
+                showStatus('All CORS proxies failed. Try running the app locally.', 'error');
+                return;
+            }
+            
+            const proxyUrl = remainingProxies[0] + encodeURIComponent(originalUrl);
+            console.log('Trying alternative proxy:', proxyUrl);
+            
+            try {
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Alternative proxy worked!', 'success');
+                    console.log('Alternative proxy response:', await response.text());
+                } else {
+                    throw new Error(`Alternative proxy failed: ${response.status}`);
+                }
+                
+            } catch (error) {
+                console.log('Alternative proxy also failed, trying next...');
+                await tryAlternativeProxy(originalUrl, payload, remainingProxies.slice(1));
+            }
+        }
+
+        // Helper function to convert file to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+        
         // Progress management
         function showProgress(show) {
             document.getElementById('progress-container').style.display = show ? 'block' : 'none';
@@ -1334,12 +1375,10 @@
                 updateProgress(0, '');
             }
         }
-
         function updateProgress(percent, message) {
             document.getElementById('progress-fill').style.width = percent + '%';
             document.getElementById('status-text').textContent = message;
         }
-
         // Status messages
         function showStatus(message, type) {
             const existingStatus = document.querySelector('.status');
@@ -1359,7 +1398,6 @@
                 }
             }, 5000);
         }
-
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing...');
