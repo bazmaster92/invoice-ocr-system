@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Template Creator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #4facfe;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .left-panel {
+            width: 350px;
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 30px;
+            position: relative;
+        }
+
+        .upload-area {
+            border: 3px dashed #4facfe;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .field-list {
+            margin-top: 30px;
+        }
+
+        .field-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .field-item:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.2);
+        }
+
+        .field-item.active {
+            border-color: #00f2fe;
+            background: #4facfe;
+            color: white;
+        }
+
+        .field-name {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .field-description {
+            font-size: 0.9em;
+        }
+
+        .canvas-container {
+            position: relative;
+            max-width: 100%;
+            max-height: 80vh;
+            overflow: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        #invoice-canvas {
+            cursor: crosshair;
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4facfe;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            color: #28a745;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .instructions {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .template-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .creditor-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .creditor-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.2em;
+        }
+
+        .creditor-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .creditor-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .creditor-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            background: #4facfe;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .close {
+            font-size: 2em;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #ddd;
+        }
+
+        .template-item {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .template-item:last-child {
+            border-bottom: none;
+        }
+
+        .template-info h4 {
+            margin: 0 0 5px 0;
+            color: #495057;
+            font-size: 1.2em;
+        }
+
+        .template-meta {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .template-actions-inline {
+            display: flex;
+            gap: 10px;
+        }
+
+        .template-actions-inline .btn {
+            margin: 0;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .template-selectable {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .template-selectable:hover {
+            background-color: #f8f9fa;
+        }
+
+        .template-load-arrow {
+            font-size: 1.5em;
+            color: #4facfe;
+        }
+
+        .webhook-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .webhook-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.2em;
+        }
+
+        .webhook-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .webhook-input:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+
+        .webhook-info {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .creditor-indicator {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            display: inline-block;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧾 Invoice Template Creator</h1>
+            <p>Create reusable templates by dragging zones on your invoice layouts</p>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="instructions">
+                    <h3>📋 How to Use</h3>
+                    <ol>
+                        <li>Upload a sample invoice</li>
+                        <li>Select a field type below</li>
+                        <li>Drag to create a zone on the invoice</li>
+                        <li>Repeat for all fields you need</li>
+                        <li>Process future invoices using your template</li>
+                    </ol>
+                </div>
+
+                <div class="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <h3>Upload Invoice</h3>
+                    <p>Click here or drag & drop<br>Supports: JPG, PNG, PDF, DOC, DOCX</p>
+                    <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx">
+                </div>
+
+                <div class="creditor-section">
+                    <h3>🏢 Creditor/Supplier</h3>
+                    <input type="text" id="creditor-input" placeholder="Enter supplier name (e.g., ABC Corp)" 
+                           class="creditor-input" list="creditor-datalist">
+                    <datalist id="creditor-datalist"></datalist>
+                    <div class="creditor-actions">
+                        <button class="btn btn-small" onclick="showLoadTemplateOptions()">📥 Load Template</button>
+                        <button class="btn btn-small" onclick="showSavedTemplates()">📋 View All</button>
+                    </div>
+                </div>
+
+                <div class="field-list">
+                    <h3>📊 Field Types</h3>
+                    <div class="field-item" data-field="creditor">
+                        <div class="field-name">Creditor</div>
+                        <div class="field-description">Supplier/vendor name</div>
+                    </div>
+                    <div class="field-item" data-field="address">
+                        <div class="field-name">Address</div>
+                        <div class="field-description">Description address</div>
+                    </div>
+                    <div class="field-item" data-field="amount">
+                        <div class="field-name">Amount</div>
+                        <div class="field-description">Total amount due</div>
+                    </div>
+                    <div class="field-item" data-field="reference">
+                        <div class="field-name">Reference</div>
+                        <div class="field-description">Invoice or reference number</div>
+                    </div>
+                    <div class="field-item" data-field="description">
+                        <div class="field-name">Description</div>
+                        <div class="field-description">Items or services provided</div>
+                    </div>
+                </div>
+
+                <div class="template-actions">
+                    <button class="btn" onclick="saveCreditorTemplate()">💾 Save Template for Creditor</button>
+                    <button class="btn" onclick="clearTemplate()">🗑️ Clear Zones</button>
+                    <button class="btn" onclick="processInvoice()" id="process-btn" disabled>🔍 Extract Data</button>
+                    <button class="btn" onclick="sendViaWebhook()" id="webhook-btn" disabled style="background: #28a745;">📤 Send to Monday.com</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="canvas-container">
+                    <canvas id="invoice-canvas"></canvas>
+                </div>
+
+                <div id="progress-container" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="status-text" class="status info">Processing...</div>
+                </div>
+
+                <div id="results" style="display: none;"></div>
+                
+                <div id="templates-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-title">📋 Saved Templates</h3>
+                            <span class="close" onclick="closeTemplatesModal()">&times;</span>
+                        </div>
+                        <div id="templates-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let canvas, ctx;
+        let isDrawing = false;
+        let startX, startY, currentX, currentY;
+        let activeField = null;
+        let savedZones = {};
+        let currentImage = null;
+        let scale = 1;
+        let currentCreditor = '';
+        let savedTemplates = {};
+        let extractedData = null;
+        let originalFile = null;
+
+        // Initialize PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Initialize everything after DOM is loaded
+        function initializeApp() {
+            console.log('Initializing app...');
+            
+            // Initialize canvas
+            canvas = document.getElementById('invoice-canvas');
+            ctx = canvas.getContext('2d');
+            console.log('Canvas initialized:', canvas);
+
+            // File upload handling
+            const fileInput = document.getElementById('file-input');
+            console.log('File input found:', fileInput);
+            
+            fileInput.addEventListener('change', function(e) {
+                console.log('File input changed');
+                const file = e.target.files[0];
+                if (file) {
+                    console.log('File selected:', file);
+                    loadImage(file);
+                } else {
+                    console.log('No file selected');
+                }
+            });
+
+            // Upload area click handler
+            const uploadArea = document.querySelector('.upload-area');
+            console.log('Upload area found:', uploadArea);
+            
+            uploadArea.addEventListener('click', function() {
+                console.log('Upload area clicked');
+                fileInput.click();
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) loadImage(file);
+            });
+
+            // Field selection
+            document.querySelectorAll('.field-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.field-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    activeField = this.dataset.field;
+                    showStatus(`Selected: ${this.querySelector('.field-name').textContent}`, 'info');
+                });
+            });
+
+            // Canvas mouse events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            
+            // Load saved templates and webhook URL on startup
+            savedTemplates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            
+            // Load saved webhook URL
+            const savedWebhookUrl = localStorage.getItem('webhookUrl');
+            if (savedWebhookUrl) {
+                document.getElementById('webhook-url').value = savedWebhookUrl;
+            }
+            
+            // Save webhook URL when it changes
+            document.getElementById('webhook-url').addEventListener('input', function() {
+                localStorage.setItem('webhookUrl', this.value);
+            });
+            
+            updateCreditorDatalist();
+            
+            console.log('App initialization complete!');
+        }
+
+        // Load and display image, PDF, or DOC file
+        function loadImage(file) {
+            console.log('Attempting to load file:', file.name, file.type, file.size);
+            
+            // Check file type
+            const validTypes = [
+                'image/', 
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ];
+            
+            const isValidType = validTypes.some(type => file.type.startsWith(type) || file.type === type);
+            
+            if (!isValidType) {
+                showStatus('Please upload an image (JPG, PNG), PDF, or Word document (DOC, DOCX)', 'error');
+                return;
+            }
+            
+            // Check file size (limit based on type)
+            let maxSize;
+            if (file.type.startsWith('image/')) {
+                maxSize = 10 * 1024 * 1024; // 10MB for images
+            } else if (file.type === 'application/pdf') {
+                maxSize = 20 * 1024 * 1024; // 20MB for PDFs
+            } else {
+                maxSize = 15 * 1024 * 1024; // 15MB for Word docs
+            }
+            
+            if (file.size > maxSize) {
+                const sizeMB = Math.round(maxSize / (1024 * 1024));
+                showStatus(`File too large. Please use a file under ${sizeMB}MB.`, 'error');
+                return;
+            }
+            
+            showStatus('Loading file...', 'info');
+            
+            if (file.type === 'application/pdf') {
+                loadPDF(file);
+            } else if (file.type === 'application/msword' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                loadWordDocument(file);
+            } else {
+                loadImageFile(file);
+            }
+        }
+
+        // Load PDF and convert first page to image
+        async function loadPDF(file) {
+            originalFile = file; // Store the original file
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const page = await pdf.getPage(1); // Get first page
+                
+                const viewport = page.getViewport({ scale: 2.0 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+                
+                // Convert canvas to image
+                const img = new Image();
+                img.onload = function() {
+                    console.log('PDF converted to image:', img.width, 'x', img.height);
+                    currentImage = img;
+                    resizeCanvas(img);
+                    drawImage();
+                    document.getElementById('process-btn').disabled = false;
+                    showStatus('PDF loaded successfully! (First page)', 'success');
+                };
+                
+                img.src = canvas.toDataURL();
+                
+            } catch (error) {
+                console.error('PDF loading error:', error);
+                showStatus('Error loading PDF. Please try a different file.', 'error');
+            }
+        }
+
+        // Load regular image file
+        function loadImageFile(file) {
+            originalFile = file; // Store the original file
+            const reader = new FileReader();
+            reader.onerror = function() {
+                console.error('FileReader error');
+                showStatus('Error reading file. Please try again.', 'error');
+            };
+            
+            reader.onload = function(e) {
+                console.log('File read successfully');
+                const img = new Image();
+                
+                img.onerror = function() {
+                    console.error('Image load error');
+                    showStatus('Invalid image file. Please try a different image.', 'error');
+                };
+                
+                img.onload = function() {
+                    console.log('Image loaded:', img.width, 'x', img.height);
+                    currentImage = img;
+                    resizeCanvas(img);
+                    drawImage();
+                    document.getElementById('process-btn').disabled = false;
+                    showStatus('Image loaded successfully!', 'success');
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Load Word document and convert to image
+        async function loadWordDocument(file) {
+            originalFile = file; // Store the original file
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                
+                // Convert Word document to HTML
+                const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                const html = result.value;
+                
+                // Create a temporary div to render the HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                tempDiv.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: -9999px;
+                    width: 800px;
+                    padding: 40px;
+                    background: white;
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                    line-height: 1.4;
+                `;
+                document.body.appendChild(tempDiv);
+                
+                // Use html2canvas to convert HTML to canvas
+                // Since html2canvas isn't available, we'll create a simple text-to-canvas conversion
+                await convertWordToCanvas(tempDiv, html);
+                
+                document.body.removeChild(tempDiv);
+                
+            } catch (error) {
+                console.error('Word document loading error:', error);
+                showStatus('Error loading Word document. Please try a different file or convert to PDF.', 'error');
+            }
+        }
+
+        // Convert Word document content to canvas
+        async function convertWordToCanvas(element, htmlContent) {
+            try {
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size
+                canvas.width = 800;
+                canvas.height = 1000;
+                
+                // Fill white background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Extract text content and render it
+                const textContent = element.textContent || element.innerText || '';
+                
+                // Set up text rendering
+                ctx.fillStyle = 'black';
+                ctx.font = '14px Arial';
+                
+                // Simple text wrapping and rendering
+                const lines = wrapText(ctx, textContent, canvas.width - 80);
+                let y = 40;
+                
+                lines.forEach(line => {
+                    if (y < canvas.height - 20) {
+                        ctx.fillText(line, 40, y);
+                        y += 20;
+                    }
+                });
+                
+                // Convert canvas to image
+                const img = new Image();
+                img.onload = function() {
+                    console.log('Word document converted to image:', img.width, 'x', img.height);
+                    currentImage = img;
+                    resizeCanvas(img);
+                    drawImage();
+                    document.getElementById('process-btn').disabled = false;
+                    showStatus('Word document loaded successfully!', 'success');
+                };
+                
+                img.src = canvas.toDataURL();
+                
+            } catch (error) {
+                console.error('Canvas conversion error:', error);
+                showStatus('Error converting Word document. Please try converting to PDF first.', 'error');
+            }
+        }
+
+        // Helper function to wrap text
+        function wrapText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            for (let word of words) {
+                const testLine = currentLine + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth && currentLine !== '') {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            
+            if (currentLine.trim() !== '') {
+                lines.push(currentLine.trim());
+            }
+            
+            return lines;
+        }
+
+        // Resize canvas to fit image
+        function resizeCanvas(img) {
+            const container = document.querySelector('.canvas-container');
+            const maxWidth = container.clientWidth - 40;
+            const maxHeight = window.innerHeight * 0.7;
+            
+            scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+            
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+        }
+
+        // Draw image and zones
+        function drawImage() {
+            if (!currentImage) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            
+            // Draw saved zones
+            Object.entries(savedZones).forEach(([field, zone]) => {
+                drawSavedZone(zone, field);
+            });
+        }
+
+        // Field selection - moved to initializeApp()
+
+        // Canvas mouse events - moved to initializeApp()
+
+        function startDrawing(e) {
+            if (!activeField) {
+                showStatus('Please select a field type first!', 'error');
+                return;
+            }
+            
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            currentX = e.clientX - rect.left;
+            currentY = e.clientY - rect.top;
+            
+            drawImage();
+            drawCurrentSelection();
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            
+            isDrawing = false;
+            
+            if (Math.abs(currentX - startX) > 10 && Math.abs(currentY - startY) > 10) {
+                saveZone();
+            }
+        }
+
+        function drawCurrentSelection() {
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = 'rgba(79, 172, 254, 0.2)';
+            
+            const width = currentX - startX;
+            const height = currentY - startY;
+            
+            ctx.fillRect(startX, startY, width, height);
+            ctx.strokeRect(startX, startY, width, height);
+        }
+
+        function drawSavedZone(zone, field) {
+            ctx.strokeStyle = '#28a745';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(40, 167, 69, 0.1)';
+            
+            ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
+            ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+            
+            // Draw label
+            ctx.fillStyle = '#28a745';
+            ctx.font = '12px Arial';
+            ctx.fillText(field.replace('_', ' ').toUpperCase(), zone.x, zone.y - 5);
+        }
+
+        function saveZone() {
+            const zone = {
+                x: Math.min(startX, currentX),
+                y: Math.min(startY, currentY),
+                width: Math.abs(currentX - startX),
+                height: Math.abs(currentY - startY)
+            };
+            
+            savedZones[activeField] = zone;
+            drawImage();
+            
+            const fieldName = document.querySelector(`[data-field="${activeField}"] .field-name`).textContent;
+            showStatus(`Zone saved for: ${fieldName}`, 'success');
+            
+            // Clear active field
+            document.querySelectorAll('.field-item').forEach(i => i.classList.remove('active'));
+            activeField = null;
+        }
+
+        // Template management with creditor support
+        function saveCreditorTemplate() {
+            const creditor = document.getElementById('creditor-input').value.trim();
+            
+            if (!creditor) {
+                showStatus('Please enter a creditor/supplier name first!', 'error');
+                return;
+            }
+            
+            if (Object.keys(savedZones).length === 0) {
+                showStatus('No zones defined! Please create some zones first.', 'error');
+                return;
+            }
+            
+            const template = {
+                creditor: creditor,
+                zones: JSON.parse(JSON.stringify(savedZones)), // Deep copy
+                imageWidth: currentImage.width,
+                imageHeight: currentImage.height,
+                fieldCount: Object.keys(savedZones).length,
+                timestamp: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            };
+            
+            // Load existing templates
+            const existingTemplates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            
+            // Save template for this creditor
+            existingTemplates[creditor] = template;
+            
+            localStorage.setItem('creditorTemplates', JSON.stringify(existingTemplates));
+            savedTemplates = existingTemplates;
+            currentCreditor = creditor;
+            
+            showStatus(`Template saved for ${creditor}!`, 'success');
+            updateCreditorIndicator();
+            updateCreditorDatalist();
+        }
+
+        function showLoadTemplateOptions() {
+            const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            
+            if (Object.keys(templates).length === 0) {
+                showStatus('No saved templates found. Create and save a template first!', 'error');
+                return;
+            }
+            
+            const templatesList = document.getElementById('templates-list');
+            const modalTitle = document.getElementById('modal-title');
+            
+            modalTitle.textContent = '📥 Load Template';
+            
+            let html = '<div style="padding: 20px 20px 10px 20px; color: #666; font-size: 0.9em;">Select a creditor template to load:</div>';
+            
+            Object.entries(templates).forEach(([creditor, template]) => {
+                const date = new Date(template.timestamp).toLocaleDateString();
+                const lastUsed = new Date(template.lastUsed).toLocaleDateString();
+                
+                html += `
+                    <div class="template-item template-selectable" onclick="loadSpecificTemplate('${creditor}')">
+                        <div class="template-info">
+                            <h4>🏢 ${creditor}</h4>
+                            <div class="template-meta">
+                                ${template.fieldCount} fields • Created: ${date} • Last used: ${lastUsed}
+                            </div>
+                        </div>
+                        <div class="template-load-arrow">
+                            📥
+                        </div>
+                    </div>
+                `;
+            });
+            
+            templatesList.innerHTML = html;
+            document.getElementById('templates-modal').style.display = 'flex';
+        }
+
+        function loadCreditorTemplate() {
+            const creditor = document.getElementById('creditor-input').value.trim();
+            
+            if (!creditor) {
+                showStatus('Please enter a creditor name to load template!', 'error');
+                return;
+            }
+            
+            const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            
+            if (!templates[creditor]) {
+                showStatus(`No template found for ${creditor}. Create zones and save a template first.`, 'error');
+                return;
+            }
+            
+            const template = templates[creditor];
+            savedZones = JSON.parse(JSON.stringify(template.zones)); // Deep copy
+            currentCreditor = creditor;
+            
+            // Update last used timestamp
+            template.lastUsed = new Date().toISOString();
+            templates[creditor] = template;
+            localStorage.setItem('creditorTemplates', JSON.stringify(templates));
+            
+            drawImage();
+            showStatus(`Template loaded for ${creditor}! (${template.fieldCount} fields)`, 'success');
+            updateCreditorIndicator();
+            updateCreditorDatalist();
+        }
+
+        function showSavedTemplates() {
+            const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            const templatesList = document.getElementById('templates-list');
+            const modalTitle = document.getElementById('modal-title');
+            
+            modalTitle.textContent = '📋 Manage Templates';
+            
+            if (Object.keys(templates).length === 0) {
+                templatesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">No saved templates yet. Create and save a template first!</div>';
+            } else {
+                let html = '';
+                Object.entries(templates).forEach(([creditor, template]) => {
+                    const date = new Date(template.timestamp).toLocaleDateString();
+                    const lastUsed = new Date(template.lastUsed).toLocaleDateString();
+                    
+                    html += `
+                        <div class="template-item">
+                            <div class="template-info">
+                                <h4>🏢 ${creditor}</h4>
+                                <div class="template-meta">
+                                    ${template.fieldCount} fields • Created: ${date} • Last used: ${lastUsed}
+                                </div>
+                            </div>
+                            <div class="template-actions-inline">
+                                <button class="btn btn-small" onclick="loadSpecificTemplate('${creditor}')">📥 Load</button>
+                                <button class="btn btn-small" onclick="deleteTemplate('${creditor}')" style="background: #dc3545;">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                templatesList.innerHTML = html;
+            }
+            
+            document.getElementById('templates-modal').style.display = 'flex';
+        }
+
+        function loadSpecificTemplate(creditor) {
+            document.getElementById('creditor-input').value = creditor;
+            closeTemplatesModal();
+            loadCreditorTemplate();
+        }
+
+        function deleteTemplate(creditor) {
+            if (confirm(`Are you sure you want to delete the template for ${creditor}?`)) {
+                const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+                delete templates[creditor];
+                localStorage.setItem('creditorTemplates', JSON.stringify(templates));
+                
+                showStatus(`Template for ${creditor} deleted!`, 'info');
+                showSavedTemplates(); // Refresh the list
+                
+                if (currentCreditor === creditor) {
+                    currentCreditor = '';
+                    updateCreditorIndicator();
+                }
+            }
+        }
+
+        function closeTemplatesModal() {
+            document.getElementById('templates-modal').style.display = 'none';
+        }
+
+        function updateCreditorDatalist() {
+            const templates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
+            const datalist = document.getElementById('creditor-datalist');
+            
+            datalist.innerHTML = '';
+            Object.keys(templates).forEach(creditor => {
+                const option = document.createElement('option');
+                option.value = creditor;
+                datalist.appendChild(option);
+            });
+        }
+
+        function updateCreditorIndicator() {
+            const existingIndicator = document.querySelector('.creditor-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            if (currentCreditor) {
+                const indicator = document.createElement('div');
+                indicator.className = 'creditor-indicator';
+                indicator.textContent = `🏢 Active: ${currentCreditor}`;
+                
+                const fieldList = document.querySelector('.field-list');
+                fieldList.parentNode.insertBefore(indicator, fieldList);
+            }
+        }
+
+        function clearTemplate() {
+            savedZones = {};
+            drawImage();
+            showStatus('Zones cleared!', 'info');
+        }
+
+        // OCR Processing
+        async function processInvoice() {
+            if (!currentImage || Object.keys(savedZones).length === 0) {
+                showStatus('Please upload an image and define zones first!', 'error');
+                return;
+            }
+            
+            showProgress(true);
+            const results = {};
+            
+            try {
+                let progress = 0;
+                const totalZones = Object.keys(savedZones).length;
+                
+                for (const [field, zone] of Object.entries(savedZones)) {
+                    updateProgress((progress / totalZones) * 100, `Processing ${field.replace('_', ' ')}...`);
+                    
+                    // Extract the zone from the image
+                    const zoneCanvas = document.createElement('canvas');
+                    const zoneCtx = zoneCanvas.getContext('2d');
+                    
+                    // Convert canvas coordinates back to image coordinates
+                    const imgX = zone.x / scale;
+                    const imgY = zone.y / scale;
+                    const imgWidth = zone.width / scale;
+                    const imgHeight = zone.height / scale;
+                    
+                    zoneCanvas.width = imgWidth;
+                    zoneCanvas.height = imgHeight;
+                    
+                    zoneCtx.drawImage(currentImage, imgX, imgY, imgWidth, imgHeight, 0, 0, imgWidth, imgHeight);
+                    
+                    // Convert to blob for Tesseract
+                    const blob = await new Promise(resolve => {
+                        zoneCanvas.toBlob(resolve, 'image/png');
+                    });
+                    
+                    // Run OCR on this zone
+                    const { data: { text } } = await Tesseract.recognize(blob, 'eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                updateProgress(((progress + m.progress) / totalZones) * 100, `Processing ${field.replace('_', ' ')}... ${Math.round(m.progress * 100)}%`);
+                            }
+                        }
+                    });
+                    
+                    results[field] = text.trim();
+                    progress++;
+                    updateProgress((progress / totalZones) * 100, `Completed ${field.replace('_', ' ')}`);
+                }
+                
+                displayResults(results);
+                extractedData = results; // Store extracted data
+                document.getElementById('webhook-btn').disabled = false; // Enable webhook button
+                showStatus('OCR processing completed!', 'success');
+                
+            } catch (error) {
+                console.error('OCR Error:', error);
+                showStatus('Error during OCR processing. Please try again.', 'error');
+            } finally {
+                showProgress(false);
+            }
+        }
+
+        // Display results
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            let html = '<h3>🎯 Extracted Data</h3>';
+            
+            Object.entries(results).forEach(([field, value]) => {
+                const fieldName = field.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                html += `
+                    <div class="result-item">
+                        <div class="result-label">${fieldName}:</div>
+                        <div class="result-value">${value || 'No text found'}</div>
+                    </div>
+                `;
+            });
+            
+            html += '<p style="margin-top: 20px; font-style: italic; color: #666;">Ready to send to Monday.com! Click "Send to Monday.com" button above.</p>';
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+        }
+
+        // Webhook functionality
+        async function sendViaWebhook() {
+            const webhookUrl = document.getElementById('webhook-url').value.trim();
+            
+            if (!webhookUrl) {
+                showStatus('Please enter a webhook URL first!', 'error');
+                return;
+            }
+            
+            if (!extractedData) {
+                showStatus('No extracted data available. Please extract data first!', 'error');
+                return;
+            }
+            
+            if (!originalFile) {
+                showStatus('Original file not available!', 'error');
+                return;
+            }
+            
+            showStatus('Sending data to Monday.com...', 'info');
+            
+            try {
+                // Create FormData to send both data and file
+                const formData = new FormData();
+                
+                // Add extracted data as JSON
+                formData.append('extractedData', JSON.stringify({
+                    creditor: currentCreditor,
+                    fields: extractedData,
+                    processedAt: new Date().toISOString(),
+                    fieldCount: Object.keys(extractedData).length
+                }));
+                
+                // Add original file
+                formData.append('originalFile', originalFile, originalFile.name);
+                
+                // Add metadata
+                formData.append('metadata', JSON.stringify({
+                    fileName: originalFile.name,
+                    fileSize: originalFile.size,
+                    fileType: originalFile.type,
+                    creditor: currentCreditor
+                }));
+                
+                // Send to webhook
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Data sent successfully to Monday.com!', 'success');
+                    
+                    // Show success details
+                    const successInfo = `
+                        <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
+                            <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
+                            <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
+                            <p style="margin: 5px 0; color: #155724;"><strong>Fields Sent:</strong> ${Object.keys(extractedData).length}</p>
+                            <p style="margin: 5px 0; color: #155724;"><strong>Webhook URL:</strong> ${webhookUrl}</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('results').innerHTML += successInfo;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                console.error('Webhook error:', error);
+                showStatus(`❌ Failed to send data: ${error.message}`, 'error');
+                
+                // Show troubleshooting info
+                const errorInfo = `
+                    <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 Send Failed</h4>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
+                        <p style="margin: 5px 0; color: #721c24;"><strong>URL:</strong> ${webhookUrl}</p>
+                        <p style="margin: 5px 0; color: #721c24;">Please check your webhook URL and try again.</p>
+                    </div>
+                `;
+                
+                document.getElementById('results').innerHTML += errorInfo;
+            }
+        }
+
+        // Progress management
+        function showProgress(show) {
+            document.getElementById('progress-container').style.display = show ? 'block' : 'none';
+            if (!show) {
+                updateProgress(0, '');
+            }
+        }
+
+        function updateProgress(percent, message) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('status-text').textContent = message;
+        }
+
+        // Status messages
+        function showStatus(message, type) {
+            const existingStatus = document.querySelector('.status');
+            if (existingStatus && existingStatus.parentElement === document.querySelector('.left-panel')) {
+                existingStatus.remove();
+            }
+            
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            document.querySelector('.template-actions').appendChild(status);
+            
+            setTimeout(() => {
+                if (status.parentElement) {
+                    status.remove();
+                }
+            }, 5000);
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing...');
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
