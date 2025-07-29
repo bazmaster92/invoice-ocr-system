@@ -70,8 +70,8 @@
             flex: 1;
             padding: 20px;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: stretch;
+            justify-content: stretch;
             position: relative;
             overflow: hidden;
         }
@@ -157,8 +157,8 @@
             opacity: 0.8;
         }
         .canvas-container {
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             overflow: auto;
             border: 2px solid #e9ecef;
             border-radius: 10px;
@@ -168,8 +168,9 @@
         .canvas-wrapper {
             display: inline-block;
             position: relative;
-            transform-origin: 0 0;
+            transform-origin: top left;
             transition: transform 0.2s ease;
+            margin: 20px;
         }
         #invoice-canvas {
             cursor: crosshair;
@@ -772,12 +773,28 @@
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
                     
-                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                    // Get mouse position relative to container
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    
+                    // Calculate zoom
+                    const delta = e.deltaY > 0 ? -0.02 : 0.02;
                     const newZoom = Math.max(0.25, Math.min(4, zoomLevel + delta));
                     
                     if (newZoom !== zoomLevel) {
+                        // Calculate scroll adjustment to keep mouse position fixed
+                        const scrollLeft = canvasContainer.scrollLeft;
+                        const scrollTop = canvasContainer.scrollTop;
+                        
+                        const zoomRatio = newZoom / zoomLevel;
+                        
                         setZoom(newZoom);
                         showZoomIndicator();
+                        
+                        // Adjust scroll to keep the mouse point in the same place
+                        canvasContainer.scrollLeft = (scrollLeft + mouseX) * zoomRatio - mouseX;
+                        canvasContainer.scrollTop = (scrollTop + mouseY) * zoomRatio - mouseY;
                     }
                 }
             });
@@ -802,19 +819,58 @@
         }
         
         function resetZoom() {
-            setZoom(1);
+            const container = document.querySelector('.canvas-container');
+            const containerRect = container.getBoundingClientRect();
+            const maxWidth = containerRect.width - 80;
+            const maxHeight = containerRect.height - 80;
+            
+            if (canvas && canvas.width && canvas.height) {
+                const widthScale = maxWidth / canvas.width;
+                const heightScale = maxHeight / canvas.height;
+                const fitScale = Math.min(widthScale, heightScale, 1);
+                
+                setZoom(fitScale);
+                
+                // Center the canvas
+                setTimeout(() => {
+                    centerCanvas();
+                }, 50);
+            } else {
+                setZoom(1);
+            }
+        }
+        
+        function centerCanvas() {
+            const container = document.getElementById('canvas-container');
+            const wrapper = document.getElementById('canvas-wrapper');
+            
+            const wrapperWidth = (wrapper.offsetWidth * zoomLevel) + 40; // Add margins
+            const wrapperHeight = (wrapper.offsetHeight * zoomLevel) + 40;
+            
+            container.scrollLeft = Math.max(0, (wrapperWidth - container.clientWidth) / 2);
+            container.scrollTop = Math.max(0, (wrapperHeight - container.clientHeight) / 2);
         }
         
         function setZoom(newZoom) {
-            zoomLevel = newZoom;
+            const canvasContainer = document.getElementById('canvas-container');
             const canvasWrapper = document.getElementById('canvas-wrapper');
+            
+            // Store center point before zoom
+            const centerX = canvasContainer.scrollLeft + canvasContainer.clientWidth / 2;
+            const centerY = canvasContainer.scrollTop + canvasContainer.clientHeight / 2;
+            
+            const prevZoom = zoomLevel;
+            zoomLevel = newZoom;
+            
             canvasWrapper.style.transform = `scale(${zoomLevel})`;
             
             // Update zoom level display
             document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
             
-            // Adjust container scroll if needed
-            centerCanvasIfNeeded();
+            // Adjust scroll to maintain center point
+            const zoomRatio = zoomLevel / prevZoom;
+            canvasContainer.scrollLeft = centerX * zoomRatio - canvasContainer.clientWidth / 2;
+            canvasContainer.scrollTop = centerY * zoomRatio - canvasContainer.clientHeight / 2;
         }
         
         function showZoomIndicator() {
@@ -902,16 +958,23 @@
                 const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
                 const page = await pdf.getPage(1); // Get first page
                 
-                const viewport = page.getViewport({ scale: 2.0 });
+                // Use very high scale for maximum quality
+                const viewport = page.getViewport({ scale: 6.0 }); // Increased to 6.0 for very high resolution
                 const tempCanvas = document.createElement('canvas');
                 const context = tempCanvas.getContext('2d');
                 
                 tempCanvas.height = viewport.height;
                 tempCanvas.width = viewport.width;
                 
+                // Set high quality rendering settings
+                context.imageSmoothingEnabled = false; // Disable smoothing for sharper text
+                
+                // Enable text layer for better rendering
                 await page.render({
                     canvasContext: context,
-                    viewport: viewport
+                    viewport: viewport,
+                    intent: 'display', // Changed to display for sharper text
+                    renderInteractiveForms: true
                 }).promise;
                 
                 // Convert canvas to image
@@ -925,7 +988,7 @@
                     showStatus('PDF loaded successfully! (First page)', 'success');
                 };
                 
-                img.src = tempCanvas.toDataURL();
+                img.src = tempCanvas.toDataURL('image/png', 1.0); // Max quality
                 
             } catch (error) {
                 console.error('PDF loading error:', error);
@@ -953,11 +1016,36 @@
                 
                 img.onload = function() {
                     console.log('Image loaded:', img.width, 'x', img.height);
-                    currentImage = img;
-                    resizeCanvas(img);
-                    drawImage();
-                    document.getElementById('process-btn').disabled = false;
-                    showStatus('Image loaded successfully!', 'success');
+                    
+                    // If image is low resolution, upscale it for better quality
+                    if (img.width < 1500 || img.height < 1500) {
+                        const tempCanvas = document.createElement('canvas');
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        // Upscale small images by 2x for better quality
+                        tempCanvas.width = img.width * 2;
+                        tempCanvas.height = img.height * 2;
+                        
+                        tempCtx.imageSmoothingEnabled = true;
+                        tempCtx.imageSmoothingQuality = 'high';
+                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                        
+                        const upscaledImg = new Image();
+                        upscaledImg.onload = function() {
+                            currentImage = upscaledImg;
+                            resizeCanvas(upscaledImg);
+                            drawImage();
+                            document.getElementById('process-btn').disabled = false;
+                            showStatus('Image loaded and optimized!', 'success');
+                        };
+                        upscaledImg.src = tempCanvas.toDataURL('image/png', 1.0);
+                    } else {
+                        currentImage = img;
+                        resizeCanvas(img);
+                        drawImage();
+                        document.getElementById('process-btn').disabled = false;
+                        showStatus('Image loaded successfully!', 'success');
+                    }
                 };
                 
                 img.src = e.target.result;
@@ -1007,13 +1095,13 @@
         // Convert Word document content to canvas
         async function convertWordToCanvas(element, htmlContent) {
             try {
-                // Create canvas
+                // Create high-resolution canvas
                 const tempCanvas = document.createElement('canvas');
                 const tempCtx = tempCanvas.getContext('2d');
                 
-                // Set canvas size
-                tempCanvas.width = 800;
-                tempCanvas.height = 1000;
+                // Set canvas size - higher resolution for better quality
+                tempCanvas.width = 2400; // Increased from 800
+                tempCanvas.height = 3000; // Increased from 1000
                 
                 // Fill white background
                 tempCtx.fillStyle = 'white';
@@ -1022,18 +1110,18 @@
                 // Extract text content and render it
                 const textContent = element.textContent || element.innerText || '';
                 
-                // Set up text rendering
+                // Set up text rendering with larger font for better quality
                 tempCtx.fillStyle = 'black';
-                tempCtx.font = '14px Arial';
+                tempCtx.font = '42px Arial'; // Increased from 14px
                 
                 // Simple text wrapping and rendering
-                const lines = wrapText(tempCtx, textContent, tempCanvas.width - 80);
-                let y = 40;
+                const lines = wrapText(tempCtx, textContent, tempCanvas.width - 240);
+                let y = 120;
                 
                 lines.forEach(line => {
-                    if (y < tempCanvas.height - 20) {
-                        tempCtx.fillText(line, 40, y);
-                        y += 20;
+                    if (y < tempCanvas.height - 60) {
+                        tempCtx.fillText(line, 120, y);
+                        y += 60; // Increased line spacing
                     }
                 });
                 
@@ -1048,7 +1136,7 @@
                     showStatus('Word document loaded successfully!', 'success');
                 };
                 
-                img.src = tempCanvas.toDataURL();
+                img.src = tempCanvas.toDataURL('image/png', 1.0);
                 
             } catch (error) {
                 console.error('Canvas conversion error:', error);
@@ -1084,22 +1172,45 @@
         
         // Resize canvas to fit image
         function resizeCanvas(img) {
+            // Store original image dimensions
+            canvas.originalWidth = img.width;
+            canvas.originalHeight = img.height;
+            
+            // Set canvas to actual image size for sharp rendering
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Calculate initial zoom to fit container
             const container = document.querySelector('.canvas-container');
-            const maxWidth = container.clientWidth - 40;
-            const maxHeight = container.clientHeight - 40;
+            const containerRect = container.getBoundingClientRect();
+            const maxWidth = containerRect.width - 80;
+            const maxHeight = containerRect.height - 80;
             
-            scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+            const widthScale = maxWidth / img.width;
+            const heightScale = maxHeight / img.height;
+            const fitScale = Math.min(widthScale, heightScale, 1); // Don't zoom in beyond 100%
             
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
+            // Set initial zoom to fit the container
+            scale = 1; // Canvas is always at 1:1 with image
+            
+            // Set initial zoom level
+            setTimeout(() => {
+                setZoom(fitScale); // Visual zoom to fit container
+            }, 50);
         }
         
         // Draw image and zones
         function drawImage() {
             if (!currentImage) return;
             
+            // Clear canvas at full resolution
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            
+            // Disable image smoothing for sharp pixels
+            ctx.imageSmoothingEnabled = false;
+            
+            // Draw image at 1:1 pixel ratio for maximum sharpness
+            ctx.drawImage(currentImage, 0, 0);
             
             // Draw saved zones
             Object.entries(savedZones).forEach(([field, zone]) => {
@@ -1114,11 +1225,10 @@
             }
             
             isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
             const canvasWrapper = document.getElementById('canvas-wrapper');
             const wrapperRect = canvasWrapper.getBoundingClientRect();
             
-            // Adjust for zoom
+            // Adjust for zoom - coordinates are in canvas space
             startX = (e.clientX - wrapperRect.left) / zoomLevel;
             startY = (e.clientY - wrapperRect.top) / zoomLevel;
         }
@@ -1416,16 +1526,12 @@
                     const zoneCanvas = document.createElement('canvas');
                     const zoneCtx = zoneCanvas.getContext('2d');
                     
-                    // Convert canvas coordinates back to image coordinates
-                    const imgX = zone.x / scale;
-                    const imgY = zone.y / scale;
-                    const imgWidth = zone.width / scale;
-                    const imgHeight = zone.height / scale;
+                    // Use zone coordinates directly (they're already in image space)
+                    zoneCanvas.width = zone.width;
+                    zoneCanvas.height = zone.height;
                     
-                    zoneCanvas.width = imgWidth;
-                    zoneCanvas.height = imgHeight;
-                    
-                    zoneCtx.drawImage(currentImage, imgX, imgY, imgWidth, imgHeight, 0, 0, imgWidth, imgHeight);
+                    // Draw the zone from the original image
+                    zoneCtx.drawImage(currentImage, zone.x, zone.y, zone.width, zone.height, 0, 0, zone.width, zone.height);
                     
                     // Convert to blob for Tesseract
                     const blob = await new Promise(resolve => {
@@ -1694,4 +1800,6 @@
             console.log('DOM loaded, initializing...');
             initializeApp();
         });
-        </script>
+    </script>
+</body>
+</html>
