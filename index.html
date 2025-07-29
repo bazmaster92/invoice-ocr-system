@@ -523,7 +523,7 @@
                     <button class="btn" onclick="saveCreditorTemplate()">💾 Save Template for Creditor</button>
                     <button class="btn" onclick="clearTemplate()">🗑️ Clear Zones</button>
                     <button class="btn" onclick="processInvoice()" id="process-btn" disabled>🔍 Extract Data</button>
-                    <button class="btn" onclick="sendViaWebhook()" id="webhook-btn" disabled style="background: #28a745;">📤 Send to Monday.com</button>
+                    <button class="btn" onclick="sendViaWebhook()" id="webhook-btn" disabled style="background: #28a745;">📤 Send to Make.com</button>
                 </div>
             </div>
 
@@ -1277,7 +1277,7 @@
                 `;
             });
             
-            html += '<p style="margin-top: 20px; font-style: italic; color: #666;">Ready to send to Monday.com! Click "Send to Monday.com" button above.</p>';
+            html += '<p style="margin-top: 20px; font-style: italic; color: #666;">Ready to send to Make.com! Click "Send to Make.com" button above.</p>';
             
             resultsDiv.innerHTML = html;
             resultsDiv.style.display = 'block';
@@ -1334,7 +1334,7 @@
                 });
                 
                 if (response.ok) {
-                    showStatus('✅ Data sent successfully to Monday.com!', 'success');
+                    showStatus('✅ Data sent successfully to Make.com!', 'success');
                     
                     // Show success details
                     const successInfo = `
