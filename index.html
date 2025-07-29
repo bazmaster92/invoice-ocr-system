@@ -13,14 +13,12 @@
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
             min-height: 100vh;
             padding: 20px;
         }
-
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -29,42 +27,35 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-
         .header {
             background: #4facfe;
             color: white;
             padding: 30px;
             text-align: center;
         }
-
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
             font-weight: 300;
         }
-
         .header p {
             font-size: 1.1em;
         }
-
         .main-content {
             display: flex;
             min-height: 600px;
         }
-
         .left-panel {
             width: 350px;
             background: #f8f9fa;
             padding: 30px;
             border-right: 1px solid #e9ecef;
         }
-
         .right-panel {
             flex: 1;
             padding: 30px;
             position: relative;
         }
-
         .upload-area {
             border: 3px dashed #4facfe;
             border-radius: 10px;
@@ -74,28 +65,23 @@
             transition: all 0.3s ease;
             cursor: pointer;
         }
-
         .upload-area:hover {
             border-color: #00f2fe;
             background: rgba(79, 172, 254, 0.05);
         }
-
         .upload-area.dragover {
             border-color: #00f2fe;
             background: rgba(79, 172, 254, 0.1);
             transform: scale(1.02);
         }
-
         .upload-icon {
             font-size: 3em;
             color: #4facfe;
             margin-bottom: 20px;
         }
-
         .field-list {
             margin-top: 30px;
         }
-
         .field-item {
             background: white;
             border: 2px solid #e9ecef;
@@ -106,29 +92,24 @@
             transition: all 0.3s ease;
             position: relative;
         }
-
         .field-item:hover {
             border-color: #4facfe;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(79, 172, 254, 0.2);
         }
-
         .field-item.active {
             border-color: #00f2fe;
             background: #4facfe;
             color: white;
         }
-
         .field-name {
             font-weight: 600;
             font-size: 1.1em;
             margin-bottom: 5px;
         }
-
         .field-description {
             font-size: 0.9em;
         }
-
         .canvas-container {
             position: relative;
             max-width: 100%;
@@ -138,14 +119,12 @@
             border-radius: 10px;
             background: #f8f9fa;
         }
-
         #invoice-canvas {
             cursor: crosshair;
             display: block;
             max-width: 100%;
             height: auto;
         }
-
         .btn {
             background: #4facfe;
             color: white;
@@ -157,19 +136,16 @@
             transition: all 0.3s ease;
             margin: 10px 5px;
         }
-
         .btn:hover {
             background: #357abd;
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
         }
-
         .btn:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
         }
-
         .progress-bar {
             width: 100%;
             height: 6px;
@@ -178,14 +154,12 @@
             overflow: hidden;
             margin: 20px 0;
         }
-
         .progress-fill {
             height: 100%;
             background: #4facfe;
             width: 0%;
             transition: width 0.3s ease;
         }
-
         .results {
             margin-top: 30px;
             padding: 20px;
@@ -193,7 +167,6 @@
             border-radius: 10px;
             border-left: 4px solid #28a745;
         }
-
         .result-item {
             margin-bottom: 15px;
             padding: 10px;
@@ -201,13 +174,11 @@
             border-radius: 6px;
             border: 1px solid #e9ecef;
         }
-
         .result-label {
             font-weight: bold;
             color: #495057;
             margin-bottom: 5px;
         }
-
         .result-value {
             color: #28a745;
             font-family: monospace;
@@ -215,7 +186,6 @@
             padding: 5px;
             border-radius: 3px;
         }
-
         .instructions {
             background: #667eea;
             color: white;
@@ -223,56 +193,46 @@
             border-radius: 10px;
             margin-bottom: 30px;
         }
-
         .instructions h3 {
             margin-bottom: 15px;
             font-size: 1.3em;
         }
-
         .instructions ol {
             padding-left: 20px;
         }
-
         .instructions li {
             margin-bottom: 8px;
             line-height: 1.4;
         }
-
         .template-actions {
             margin-top: 20px;
             padding-top: 20px;
             border-top: 2px solid #e9ecef;
         }
-
         #file-input {
             display: none;
         }
-
         .status {
             padding: 10px;
             border-radius: 6px;
             margin: 10px 0;
             font-weight: 500;
         }
-
         .status.success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-
         .status.error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-
         .status.info {
             background: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
-
         .creditor-section {
             margin: 20px 0;
             padding: 20px;
@@ -280,13 +240,11 @@
             border-radius: 10px;
             border: 2px solid #e9ecef;
         }
-
         .creditor-section h3 {
             margin-bottom: 15px;
             color: #495057;
             font-size: 1.2em;
         }
-
         .creditor-input {
             width: 100%;
             padding: 12px;
@@ -296,24 +254,20 @@
             margin-bottom: 15px;
             transition: border-color 0.3s ease;
         }
-
         .creditor-input:focus {
             outline: none;
             border-color: #4facfe;
             box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
         }
-
         .creditor-actions {
             display: flex;
             gap: 10px;
         }
-
         .btn-small {
             padding: 8px 16px;
             font-size: 0.9em;
             margin: 0;
         }
-
         .modal {
             position: fixed;
             z-index: 1000;
@@ -326,7 +280,6 @@
             justify-content: center;
             align-items: center;
         }
-
         .modal-content {
             background: white;
             border-radius: 15px;
@@ -337,7 +290,6 @@
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
-
         .modal-header {
             background: #4facfe;
             color: white;
@@ -346,22 +298,18 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .modal-header h3 {
             margin: 0;
             font-size: 1.5em;
         }
-
         .close {
             font-size: 2em;
             cursor: pointer;
             transition: color 0.3s ease;
         }
-
         .close:hover {
             color: #ddd;
         }
-
         .template-item {
             padding: 20px;
             border-bottom: 1px solid #e9ecef;
@@ -369,47 +317,38 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .template-item:last-child {
             border-bottom: none;
         }
-
         .template-info h4 {
             margin: 0 0 5px 0;
             color: #495057;
             font-size: 1.2em;
         }
-
         .template-meta {
             color: #6c757d;
             font-size: 0.9em;
         }
-
         .template-actions-inline {
             display: flex;
             gap: 10px;
         }
-
         .template-actions-inline .btn {
             margin: 0;
             padding: 8px 16px;
             font-size: 0.9em;
         }
-
         .template-selectable {
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-
         .template-selectable:hover {
             background-color: #f8f9fa;
         }
-
         .template-load-arrow {
             font-size: 1.5em;
             color: #4facfe;
         }
-
         .webhook-section {
             margin: 20px 0;
             padding: 20px;
@@ -417,13 +356,11 @@
             border-radius: 10px;
             border: 2px solid #e9ecef;
         }
-
         .webhook-section h3 {
             margin-bottom: 15px;
             color: #495057;
             font-size: 1.2em;
         }
-
         .webhook-input {
             width: 100%;
             padding: 12px;
@@ -433,18 +370,15 @@
             margin-bottom: 10px;
             transition: border-color 0.3s ease;
         }
-
         .webhook-input:focus {
             outline: none;
             border-color: #28a745;
             box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
-
         .webhook-info {
             color: #6c757d;
             font-size: 0.9em;
         }
-
         .creditor-indicator {
             background: #28a745;
             color: white;
@@ -463,7 +397,6 @@
             <h1>🧾 Invoice Template Creator</h1>
             <p>Create reusable templates by dragging zones on your invoice layouts</p>
         </div>
-
         <div class="main-content">
             <div class="left-panel">
                 <div class="instructions">
@@ -476,14 +409,12 @@
                         <li>Process future invoices using your template</li>
                     </ol>
                 </div>
-
                 <div class="upload-area">
                     <div class="upload-icon">📄</div>
                     <h3>Upload Invoice</h3>
                     <p>Click here or drag & drop<br>Supports: JPG, PNG, PDF, DOC, DOCX</p>
                     <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx">
                 </div>
-
                 <div class="creditor-section">
                     <h3>🏢 Creditor/Supplier</h3>
                     <input type="text" id="creditor-input" placeholder="Enter supplier name (e.g., ABC Corp)" 
@@ -492,6 +423,25 @@
                     <div class="creditor-actions">
                         <button class="btn btn-small" onclick="showLoadTemplateOptions()">📥 Load Template</button>
                         <button class="btn btn-small" onclick="showSavedTemplates()">📋 View All</button>
+                    </div>
+                </div>
+
+                <!-- Webhook section hidden - URL configured in code -->
+                <input type="hidden" id="webhook-url" value="https://hook.eu1.make.com/aoqhdg4kb2dctqgc2vwnqvq0s5vc34ih">
+
+                <div class="label-section">
+                    <h3>🏷️ Invoice Category</h3>
+                    <select id="invoice-label" class="label-select">
+                        <option value="">-- Select Category --</option>
+                        <option value="Blockman">Blockman</option>
+                        <option value="BG Property Services">BG Property Services</option>
+                        <option value="I&F Estates / Client Expenses">I&F Estates / Client Expenses</option>
+                        <option value="I&F Estates / Office Expenses">I&F Estates / Office Expenses</option>
+                        <option value="Sandys Estates / Client Expenses">Sandys Estates / Client Expenses</option>
+                        <option value="Sandys Estates / Office Expenses">Sandys Estates / Office Expenses</option>
+                    </select>
+                    <div class="label-info">
+                        <small>💡 Select the appropriate category for this invoice</small>
                     </div>
                 </div>
 
@@ -518,7 +468,6 @@
                         <div class="field-description">Items or services provided</div>
                     </div>
                 </div>
-
                 <div class="template-actions">
                     <button class="btn" onclick="saveCreditorTemplate()">💾 Save Template for Creditor</button>
                     <button class="btn" onclick="clearTemplate()">🗑️ Clear Zones</button>
@@ -526,19 +475,16 @@
                     <button class="btn" onclick="sendViaWebhook()" id="webhook-btn" disabled style="background: #28a745;">📤 Send to Make.com</button>
                 </div>
             </div>
-
             <div class="right-panel">
                 <div class="canvas-container">
                     <canvas id="invoice-canvas"></canvas>
                 </div>
-
                 <div id="progress-container" style="display: none;">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progress-fill"></div>
                     </div>
                     <div id="status-text" class="status info">Processing...</div>
                 </div>
-
                 <div id="results" style="display: none;"></div>
                 
                 <div id="templates-modal" class="modal" style="display: none;">
@@ -553,7 +499,6 @@
             </div>
         </div>
     </div>
-
     <script>
         let canvas, ctx;
         let isDrawing = false;
@@ -635,19 +580,8 @@
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             
-            // Load saved templates and webhook URL on startup
+            // Load saved templates on startup
             savedTemplates = JSON.parse(localStorage.getItem('creditorTemplates') || '{}');
-            
-            // Load saved webhook URL
-            const savedWebhookUrl = localStorage.getItem('webhookUrl');
-            if (savedWebhookUrl) {
-                document.getElementById('webhook-url').value = savedWebhookUrl;
-            }
-            
-            // Save webhook URL when it changes
-            document.getElementById('webhook-url').addEventListener('input', function() {
-                localStorage.setItem('webhookUrl', this.value);
-            });
             
             updateCreditorDatalist();
             
@@ -912,10 +846,6 @@
                 drawSavedZone(zone, field);
             });
         }
-
-        // Field selection - moved to initializeApp()
-
-        // Canvas mouse events - moved to initializeApp()
 
         function startDrawing(e) {
             if (!activeField) {
@@ -1286,9 +1216,10 @@
         // Webhook functionality
         async function sendViaWebhook() {
             const webhookUrl = document.getElementById('webhook-url').value.trim();
+            const selectedLabel = document.getElementById('invoice-label').value;
             
-            if (!webhookUrl) {
-                showStatus('Please enter a webhook URL first!', 'error');
+            if (!selectedLabel) {
+                showStatus('Please select an invoice category first!', 'error');
                 return;
             }
             
@@ -1302,15 +1233,16 @@
                 return;
             }
             
-            showStatus('Sending data to Monday.com...', 'info');
+            showStatus('Sending data to Make.com...', 'info');
             
             try {
                 // Create FormData to send both data and file
                 const formData = new FormData();
                 
-                // Add extracted data as JSON
+                // Add extracted data as JSON with the selected label
                 formData.append('extractedData', JSON.stringify({
                     creditor: currentCreditor,
+                    category: selectedLabel,
                     fields: extractedData,
                     processedAt: new Date().toISOString(),
                     fieldCount: Object.keys(extractedData).length
@@ -1324,7 +1256,8 @@
                     fileName: originalFile.name,
                     fileSize: originalFile.size,
                     fileType: originalFile.type,
-                    creditor: currentCreditor
+                    creditor: currentCreditor,
+                    category: selectedLabel
                 }));
                 
                 // Send to webhook
@@ -1340,10 +1273,10 @@
                     const successInfo = `
                         <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
                             <h4 style="margin: 0 0 10px 0; color: #155724;">📤 Sent Successfully!</h4>
+                            <p style="margin: 5px 0; color: #155724;"><strong>Category:</strong> ${selectedLabel}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>Creditor:</strong> ${currentCreditor || 'Not specified'}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>File:</strong> ${originalFile.name}</p>
                             <p style="margin: 5px 0; color: #155724;"><strong>Fields Sent:</strong> ${Object.keys(extractedData).length}</p>
-                            <p style="margin: 5px 0; color: #155724;"><strong>Webhook URL:</strong> ${webhookUrl}</p>
                         </div>
                     `;
                     
@@ -1361,8 +1294,7 @@
                     <div style="margin-top: 15px; padding: 15px; background: #f8d7da; border-radius: 8px; border-left: 4px solid #dc3545;">
                         <h4 style="margin: 0 0 10px 0; color: #721c24;">🚫 Send Failed</h4>
                         <p style="margin: 5px 0; color: #721c24;"><strong>Error:</strong> ${error.message}</p>
-                        <p style="margin: 5px 0; color: #721c24;"><strong>URL:</strong> ${webhookUrl}</p>
-                        <p style="margin: 5px 0; color: #721c24;">Please check your webhook URL and try again.</p>
+                        <p style="margin: 5px 0; color: #721c24;">Please check your connection and try again.</p>
                     </div>
                 `;
                 
